@@ -11,7 +11,7 @@ class Toolbox(object):
         self.alias = "toolbox"
 
         # List of tool classes associated with this toolbox
-        self.tools = [OverwriteFeatureClass, SpatialJoinAlterInput]
+        self.tools = [OverwriteFeatureClass, SpatialJoinField]
 
 
 class OverwriteFeatureClass(object):
@@ -120,10 +120,10 @@ class OverwriteFeatureClass(object):
 
         return param0
 
-class SpatialJoinAlterInput(object):
+class SpatialJoinField(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
-        self.label = "Spatial Join - Alter Input"
+        self.label = "Spatial Join Field"
         self.description = ""
         self.canRunInBackground = False
 
@@ -140,58 +140,67 @@ class SpatialJoinAlterInput(object):
 
         param1 = arcpy.Parameter(
             name = 'param1',
-            displayName = 'Target Features - Where Clause',
-            datatype = 'GPSQLExpression',
-            parameterType = 'Optional',
+            displayName = 'Target Features - Field',
+            datatype = 'Field',
+            parameterType = 'Required',
             direction = 'Input'
         )
         param1.parameterDependencies = [param0.name]
 
         param2 = arcpy.Parameter(
             name = 'param2',
+            displayName = 'Target Features - Where Clause',
+            datatype = 'GPSQLExpression',
+            parameterType = 'Optional',
+            direction = 'Input'
+        )
+        param2.parameterDependencies = [param2.name]
+
+        param3 = arcpy.Parameter(
+            name = 'param3',
             displayName = 'Join Features',
             datatype = 'DEFeatureClass',
             parameterType = 'Required',
             direction = 'Input'
         )
 
-        param3 = arcpy.Parameter(
-            name = 'param3',
+        param4 = arcpy.Parameter(
+            name = 'param4',
+            displayName = 'Target Features - Field',
+            datatype = 'Field',
+            parameterType = 'Required',
+            direction = 'Input'
+        )
+        param4.parameterDependencies = [param3.name]
+
+        param5 = arcpy.Parameter(
+            name = 'param5',
             displayName = 'Join Features - Where Clause',
             datatype = 'GPSQLExpression',
             parameterType = 'Optional',
             direction = 'Input'
         )
-        param3.parameterDependencies = [param2.name]
+        param5.parameterDependencies = [param3.name]
 
-        param4 = arcpy.Parameter(
-            name = 'param4',
-            displayName = 'Field Mapping',
-            datatype = 'GPFieldMapping',
-            parameterType = 'Required',
-            direction = 'Input'
-        )
-        param4.parameterDependencies = [param0.name, param2.name]
-
-        param5 = arcpy.Parameter(
-            name = 'param5',
+        param6 = arcpy.Parameter(
+            name = 'param6',
             displayName = 'Match Option',
             datatype = 'GPString',
             parameterType = 'Required',
             direction = 'Input'
         )
-        param5.filter.type = 'ValueList'
-        param5.filter.list = ['INTERSECT', 'INTERSECT_3D', 'WITHIN_A_DISTANCE', 'WITHIN_A_DISTANCE_GEODESIC', 'CONTAINS', 'COMPLETELY_CONTAINS', 'CONTAINS_CLEMENTINI', 'WITHIN', 'COMPLETELY_WITHIN', 'WITHIN_CLEMENTINI', 'ARE_IDENTICAL_TO', 'BOUNDARY_TOUCHES', 'SHARE_A_LINE_SEGMENT_WITH', 'CROSSED_BY_THE_OUTLINE_OF', 'HAVE_THEIR_CENTER_IN', 'CLOSEST', 'CLOSEST_GEODESIC', ]
+        param6.filter.type = 'ValueList'
+        param6.filter.list = ['INTERSECT', 'INTERSECT_3D', 'WITHIN_A_DISTANCE', 'WITHIN_A_DISTANCE_GEODESIC', 'CONTAINS', 'COMPLETELY_CONTAINS', 'CONTAINS_CLEMENTINI', 'WITHIN', 'COMPLETELY_WITHIN', 'WITHIN_CLEMENTINI', 'ARE_IDENTICAL_TO', 'BOUNDARY_TOUCHES', 'SHARE_A_LINE_SEGMENT_WITH', 'CROSSED_BY_THE_OUTLINE_OF', 'HAVE_THEIR_CENTER_IN', 'CLOSEST', 'CLOSEST_GEODESIC', ]
 
-        param6 = arcpy.Parameter(
-            name = 'param6',
+        param7 = arcpy.Parameter(
+            name = 'param7',
             displayName = 'Search Radius',
             datatype = 'GPLinearUnit',
             parameterType = 'Optional',
             direction = 'Input'
         )
 
-        params = [param0, param1, param2, param3, param4, param5, param6]
+        params = [param0, param1, param2, param3, param4, param5, param6, param7]
         return params
 
     def isLicensed(self):
@@ -227,11 +236,12 @@ class SpatialJoinAlterInput(object):
     def execute(self, parameters, messages):
         """The source code of the tool."""
         target_features = parameters[0].valueAsText
-        target_sql = parameters[1].valueAsText
-        join_features = parameters[2].valueAsText
-        target_sql = parameters[3].valueAsText
-        field_mapping = parameters[4].valueAsText
-        match_option = parameters[5].valueAsText
-        search_radius = parameters[6].valueAsText
+        target_field = parameters[1].valueAsText
+        target_sql = parameters[2].valueAsText
+        join_features = parameters[3].valueAsText
+        join_field = parameters[4].valueAsText
+        join_sql = parameters[5].valueAsText
+        match_option = parameters[6].valueAsText
+        search_radius = parameters[7].valueAsText
 
         
