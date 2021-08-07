@@ -187,7 +187,7 @@ class SpatialJoinAlterInput(object):
             name = 'param6',
             displayName = 'Search Radius',
             datatype = 'GPLinearUnit',
-            parameterType = 'Required',
+            parameterType = 'Optional',
             direction = 'Input'
         )
 
@@ -203,6 +203,20 @@ class SpatialJoinAlterInput(object):
         validation is performed.  This method is called whenever a parameter
         has been changed."""
 
+        # altered is true if the value of a parameter is changed.
+        # hasBeenValidated is false if a parameter's value has been modified by the user since the last time updateParameters...
+        # and internal validate were called. Once internal validate has been called, geoprocessing automatically sets...
+        # hasBeenValidated to true for every parameter.
+        if parameters[0].altered and not parameters[0].hasBeenValidated or parameters[2].altered and not parameters[2].hasBeenValidated: # if the input table view is changed
+            target_table = parameters[0].value
+            join_table = parameters[2].value
+
+            # add a temporary item to the field mappings list
+            parameters[4].value = str('Empty')
+
+            # add table fields
+            parameters[4].value.addTable(target_table)
+            parameters[4].value.addTable(join_table)
         return
 
     def updateMessages(self, parameters):
