@@ -23,7 +23,7 @@ class OverwriteFeatureClass(object):
 
     def getParameterInfo(self):
         """Define parameter definitions"""
-        input_fc = arcpy.Parameter(
+        param0 = arcpy.Parameter(
             name = 'input_parks',
             displayName = 'Input Feature Class',
             datatype = 'DEFeatureClass',
@@ -31,25 +31,25 @@ class OverwriteFeatureClass(object):
             direction = 'Input'
         )
 
-        input_sql = arcpy.Parameter(
-            name = 'input_sql',
+        param1 = arcpy.Parameter(
+            name = 'param1',
             displayName = 'Where Clause',
             datatype = 'GPSQLExpression',
             parameterType = 'Optional',
             direction = 'Input'
         )
-        input_sql.parameterDependencies = [input_fc.name]
+        param1.parameterDependencies = [param0.name]
 
-        input_fms = arcpy.Parameter(
-            name = 'input_fms',
+        param2 = arcpy.Parameter(
+            name = 'param2',
             displayName = 'Field Mapping',
             datatype = 'GPFieldMapping',
             parameterType = 'Optional',
             direction = 'Input'
         )
-        input_fms.parameterDependencies = [input_fc.name]
+        param2.parameterDependencies = [param0.name]
 
-        params = [input_fc, input_sql, input_fms]
+        params = [param0, param1, param2]
         return params
 
     def isLicensed(self):
@@ -80,11 +80,11 @@ class OverwriteFeatureClass(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-        input_fc = parameters[0].valueAsText
-        input_sql = parameters[1].valueAsText
-        input_fms = parameters[2].valueAsText
+        param0 = parameters[0].valueAsText
+        param1 = parameters[1].valueAsText
+        param2 = parameters[2].valueAsText
 
-        fc_describe = arcpy.Describe(input_fc)
+        fc_describe = arcpy.Describe(param0)
         out_path = fc_describe.path
         out_name = fc_describe.name
         out_path = out_path.replace('\\' + out_name, '')
@@ -94,11 +94,11 @@ class OverwriteFeatureClass(object):
         arcpy.env.overwriteOutput = True
 
         arcpy.FeatureClassToFeatureClass_conversion(
-            in_features=input_fc,
+            in_features=param0,
             out_path=temp_path,
             out_name=out_name,
-            where_clause=input_sql,
-            field_mapping=input_fms
+            where_clause=param1,
+            field_mapping=param2
         )
 
         arcpy.FeatureClassToFeatureClass_conversion(
@@ -107,5 +107,4 @@ class OverwriteFeatureClass(object):
             out_name=out_name
         )
 
-
-        return
+        return param0
