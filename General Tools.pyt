@@ -242,12 +242,15 @@ class SpatialJoinField(object):
         match_option = parameters[6].valueAsText
         search_radius = parameters[7].valueAsText
 
-        # note whether  the target field's and join field's names are equal
-        if target_field == join_field:
-            dup_fields = True
-        else:
-            dup_fields = False
-            
+        # create field mappings of a single field map of the join field from the join features
+        fms = arcpy.FieldMappings()
+        fm = arcpy.FieldMap()
+        fm.addInputField(join_features, join_field)
+        join_result_field = fm.outputField
+        join_result_field.name = 'join_result_field'
+        fm.outputField = join_result_field
+        fms.addFieldMap(fm)
+
 
         # make Feature Layer of the Parks Layer with requisite query
         target_layer = 'target_layer'
@@ -271,6 +274,7 @@ class SpatialJoinField(object):
             target_features=target_layer,
             join_features=join_layer,
             out_feature_class=r'memory\SpatialJoin',
+            field_mapping=fms,
             match_option=match_option,
             search_radius=search_radius
         )
