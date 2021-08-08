@@ -139,8 +139,8 @@ class SpatialJoinField(object):
         )
 
         param1 = arcpy.Parameter(
-            name = 'param1',
-            displayName = 'Target Features - Field',
+            name = 'target_field',
+            displayName = 'Target Field',
             datatype = 'Field',
             parameterType = 'Required',
             direction = 'Input'
@@ -148,8 +148,8 @@ class SpatialJoinField(object):
         param1.parameterDependencies = [param0.name]
 
         param2 = arcpy.Parameter(
-            name = 'param2',
-            displayName = 'Target Features - Where Clause',
+            name = 'target_where_clause',
+            displayName = 'Target Features: Where Clause',
             datatype = 'GPSQLExpression',
             parameterType = 'Optional',
             direction = 'Input'
@@ -157,7 +157,7 @@ class SpatialJoinField(object):
         param2.parameterDependencies = [param2.name]
 
         param3 = arcpy.Parameter(
-            name = 'param3',
+            name = 'join_features',
             displayName = 'Join Features',
             datatype = 'DEFeatureClass',
             parameterType = 'Required',
@@ -165,8 +165,8 @@ class SpatialJoinField(object):
         )
 
         param4 = arcpy.Parameter(
-            name = 'param4',
-            displayName = 'Target Features - Field',
+            name = 'join_field',
+            displayName = 'Join Field',
             datatype = 'Field',
             parameterType = 'Required',
             direction = 'Input'
@@ -174,8 +174,8 @@ class SpatialJoinField(object):
         param4.parameterDependencies = [param3.name]
 
         param5 = arcpy.Parameter(
-            name = 'param5',
-            displayName = 'Join Features - Where Clause',
+            name = 'join_where_clause',
+            displayName = 'Join Features: Where Clause',
             datatype = 'GPSQLExpression',
             parameterType = 'Optional',
             direction = 'Input'
@@ -183,7 +183,7 @@ class SpatialJoinField(object):
         param5.parameterDependencies = [param3.name]
 
         param6 = arcpy.Parameter(
-            name = 'param6',
+            name = 'match_option',
             displayName = 'Match Option',
             datatype = 'GPString',
             parameterType = 'Required',
@@ -193,7 +193,7 @@ class SpatialJoinField(object):
         param6.filter.list = ['INTERSECT', 'INTERSECT_3D', 'WITHIN_A_DISTANCE', 'WITHIN_A_DISTANCE_GEODESIC', 'CONTAINS', 'COMPLETELY_CONTAINS', 'CONTAINS_CLEMENTINI', 'WITHIN', 'COMPLETELY_WITHIN', 'WITHIN_CLEMENTINI', 'ARE_IDENTICAL_TO', 'BOUNDARY_TOUCHES', 'SHARE_A_LINE_SEGMENT_WITH', 'CROSSED_BY_THE_OUTLINE_OF', 'HAVE_THEIR_CENTER_IN', 'CLOSEST', 'CLOSEST_GEODESIC', ]
 
         param7 = arcpy.Parameter(
-            name = 'param7',
+            name = 'search_radius',
             displayName = 'Search Radius',
             datatype = 'GPLinearUnit',
             parameterType = 'Optional',
@@ -216,16 +216,14 @@ class SpatialJoinField(object):
         # hasBeenValidated is false if a parameter's value has been modified by the user since the last time updateParameters...
         # and internal validate were called. Once internal validate has been called, geoprocessing automatically sets...
         # hasBeenValidated to true for every parameter.
-        if parameters[0].altered and not parameters[0].hasBeenValidated or parameters[2].altered and not parameters[2].hasBeenValidated: # if the input table view is changed
+        if parameters[0].altered and not parameters[0].hasBeenValidated: # if the target table view is changed
             target_table = parameters[0].value
-            join_table = parameters[2].value
 
             # add a temporary item to the field mappings list
             parameters[4].value = str('Empty')
 
             # add table fields
             parameters[4].value.addTable(target_table)
-            parameters[4].value.addTable(join_table)
         return
 
     def updateMessages(self, parameters):
@@ -237,11 +235,55 @@ class SpatialJoinField(object):
         """The source code of the tool."""
         target_features = parameters[0].valueAsText
         target_field = parameters[1].valueAsText
-        target_sql = parameters[2].valueAsText
+        target_where_clause = parameters[2].valueAsText
         join_features = parameters[3].valueAsText
         join_field = parameters[4].valueAsText
-        join_sql = parameters[5].valueAsText
+        join_where_clause = parameters[5].valueAsText
         match_option = parameters[6].valueAsText
         search_radius = parameters[7].valueAsText
 
+        # note whether  the target field's and join field's names are equal
+        if target_field == join_field:
+            dup_fields = True
+        else:
+            dup_fields = False
+            
+
+        # make Feature Layer of the Parks Layer with requisite query
+        target_layer = 'target_layer'
+        arcpy.MakeFeatureLayer_management(
+            in_features=target_features,
+            out_layer='target_layer',
+            where_clause=target_where_clause,
+
+        )
+
+        # make Feature Layer of the Parks Layer with requisite query
+        join_layer = 'join_layer'
+        arcpy.MakeFeatureLayer_management(
+            in_features=join_features,
+            out_layer=join_layer,
+            where_clause=join_where_clause
+        )
         
+        # spatial join Parks Layer to the Feature Class copy of the layer to re-add the PARK_NAME and FACILITY_C fields
+        arcpy.SpatialJoin_analysis(
+            target_features=target_layer,
+            join_features=join_layer,
+            out_feature_class=r'memory\SpatialJoin',
+            match_option=match_option,
+            search_radius=search_radius
+        )
+
+        # create nested dictionary of objectid and fields' key/value pairs from spatial join result
+        search_dict = dict()
+        with arcpy.da.SearchCursor(
+            in_table=r'memory\FC_Parks_SpatialJoin',
+            field_names=['TARGET_FID', 'PARK_NAME_1', 'FACILITY_C_1']) as cursor:
+                    
+            for row in cursor:
+                target_fid = row[0]
+                park_name = row[1]
+                facility_c = row[2]
+
+                search_dict[target_fid] = {'PARK_NAME': park_name, 'FACILITY_C': facility_c}
