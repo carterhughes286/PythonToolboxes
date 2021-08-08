@@ -269,7 +269,7 @@ class SpatialJoinField(object):
             where_clause=join_where_clause
         )
         
-        # spatial join Parks Layer to the Feature Class copy of the layer to re-add the PARK_NAME and FACILITY_C fields
+        # spatial join the join layer to the target layer
         arcpy.SpatialJoin_analysis(
             target_features=target_layer,
             join_features=join_layer,
@@ -279,15 +279,30 @@ class SpatialJoinField(object):
             search_radius=search_radius
         )
 
-        # create nested dictionary of objectid and fields' key/value pairs from spatial join result
+        # create nested dictionary of OID and join result field key/value pairs from spatial join result
         search_dict = dict()
         with arcpy.da.SearchCursor(
-            in_table=r'memory\FC_Parks_SpatialJoin',
-            field_names=['TARGET_FID', 'PARK_NAME_1', 'FACILITY_C_1']) as cursor:
+            in_table=r'memory\SpatialJoin',
+            field_names=['TARGET_FID', 'join_result_field']
+        ) as cursor:
                     
             for row in cursor:
                 target_fid = row[0]
-                park_name = row[1]
-                facility_c = row[2]
+                join_result_value = row[1]
 
-                search_dict[target_fid] = {'PARK_NAME': park_name, 'FACILITY_C': facility_c}
+                search_dict[target_fid] = join_result_value
+        
+        # delete the spatial join result from memory
+        arcpy.Delete_management(
+            in_data=r'memory\SpatialJoin'
+        )
+
+        # update the target field of the target features from dictionary
+        with arcpy.da.UpdateCursor(
+            in_table=target_layer,
+            field_names=['@OID', target_field]
+        ) as cursor:
+            for row in cursor:
+                oid = row[0]
+                row[1] = search_dict[oid]
+                cursor.updateRow(row)
