@@ -189,8 +189,9 @@ class SpatialJoinField(object):
             parameterType = 'Required',
             direction = 'Input'
         )
-        param6.filter.type = 'ValueList'
+        param6.filter.type = 'ValueList' # filter parameter input to given list
         param6.filter.list = ['INTERSECT', 'INTERSECT_3D', 'WITHIN_A_DISTANCE', 'WITHIN_A_DISTANCE_GEODESIC', 'CONTAINS', 'COMPLETELY_CONTAINS', 'CONTAINS_CLEMENTINI', 'WITHIN', 'COMPLETELY_WITHIN', 'WITHIN_CLEMENTINI', 'ARE_IDENTICAL_TO', 'BOUNDARY_TOUCHES', 'SHARE_A_LINE_SEGMENT_WITH', 'CROSSED_BY_THE_OUTLINE_OF', 'HAVE_THEIR_CENTER_IN', 'CLOSEST', 'CLOSEST_GEODESIC', ]
+        param6.value = 'INTERSECT' # default value
 
         param7 = arcpy.Parameter(
             name = 'search_radius',
@@ -211,19 +212,6 @@ class SpatialJoinField(object):
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
-
-        # altered is true if the value of a parameter is changed.
-        # hasBeenValidated is false if a parameter's value has been modified by the user since the last time updateParameters...
-        # and internal validate were called. Once internal validate has been called, geoprocessing automatically sets...
-        # hasBeenValidated to true for every parameter.
-        if parameters[0].altered and not parameters[0].hasBeenValidated: # if the target table view is changed
-            target_table = parameters[0].value
-
-            # add a temporary item to the field mappings list
-            parameters[4].value = str('Empty')
-
-            # add table fields
-            parameters[4].value.addTable(target_table)
         return
 
     def updateMessages(self, parameters):
@@ -242,7 +230,7 @@ class SpatialJoinField(object):
         match_option = parameters[6].valueAsText
         search_radius = parameters[7].valueAsText
 
-        # create field mappings of a single field map of the join field from the join features
+        # create field mappings object containing a single field map of the join field from the join features
         fms = arcpy.FieldMappings()
         fm = arcpy.FieldMap()
         fm.addInputField(join_features, join_field)
