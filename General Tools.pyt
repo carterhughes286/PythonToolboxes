@@ -131,7 +131,7 @@ class SpatialJoinField(object):
         """Define parameter definitions"""
         
         param0 = arcpy.Parameter(
-            name = 'param0',
+            name = 'target_features',
             displayName = 'Target Features',
             datatype = 'DEFeatureClass',
             parameterType = 'Required',
@@ -200,6 +200,7 @@ class SpatialJoinField(object):
             parameterType = 'Optional',
             direction = 'Input'
         )
+        param7.value = 0 # default value
 
         params = [param0, param1, param2, param3, param4, param5, param6, param7]
         return params
