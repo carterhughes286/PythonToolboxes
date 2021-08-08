@@ -133,7 +133,7 @@ class SpatialJoinField(object):
         param0 = arcpy.Parameter(
             name = 'target_features',
             displayName = 'Target Features',
-            datatype = 'DEFeatureClass',
+            datatype = ['DEFeatureClass', 'GPFeatureLayer'],
             parameterType = 'Required',
             direction = 'Input'
         )
@@ -159,7 +159,7 @@ class SpatialJoinField(object):
         param3 = arcpy.Parameter(
             name = 'join_features',
             displayName = 'Join Features',
-            datatype = 'DEFeatureClass',
+            datatype = ['DEFeatureClass', 'GPFeatureLayer'],
             parameterType = 'Required',
             direction = 'Input'
         )
