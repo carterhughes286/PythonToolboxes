@@ -11,7 +11,7 @@ class Toolbox(object):
         self.alias = "toolbox"
 
         # List of tool classes associated with this toolbox
-        self.tools = [OverwriteFeatureClass, SpatialJoinField]
+        self.tools = [OverwriteFeatureClass, SpatialJoinField, SpatialJoinFields]
 
 
 class OverwriteFeatureClass(object):
@@ -124,7 +124,7 @@ class SpatialJoinField(object):
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
         self.label = "Spatial Join Field"
-        self.description = ""
+        self.description = "Updates field values from one feature to another based on the spatial relationship. The target features' field values are updated with the joined field values from the join features."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
@@ -292,4 +292,187 @@ class SpatialJoinField(object):
             for row in cursor:
                 oid = row[0]
                 row[1] = search_dict[oid]
+                cursor.updateRow(row)
+
+class SpatialJoinFields(object):
+    def __init__(self):
+        """Define the tool (tool name is the name of the class)."""
+        self.label = "Spatial Join Field(s)"
+        self.description = "Updates field values from one feature to another based on the spatial relationship. The target features' field values are updated with the joined field values from the join features."
+        self.canRunInBackground = True
+
+    def getParameterInfo(self):
+        """Define parameter definitions"""
+        
+        param0 = arcpy.Parameter(
+            name = 'target_features',
+            displayName = 'Target Features',
+            datatype = ['DEFeatureClass', 'GPFeatureLayer'],
+            parameterType = 'Required',
+            direction = 'Input'
+        )
+
+        param1 = arcpy.Parameter(
+            name = 'target_fields',
+            displayName = 'Target Field(s)',
+            datatype = 'Field',
+            parameterType = 'Required',
+            direction = 'Input',
+            multiValue=True
+        )
+        param1.parameterDependencies = [param0.name]
+
+        param2 = arcpy.Parameter(
+            name = 'target_where_clause',
+            displayName = 'Target Features: Where Clause',
+            datatype = 'GPSQLExpression',
+            parameterType = 'Optional',
+            direction = 'Input'
+        )
+        param2.parameterDependencies = [param0.name]
+
+        param3 = arcpy.Parameter(
+            name = 'join_features',
+            displayName = 'Join Features',
+            datatype = ['DEFeatureClass', 'GPFeatureLayer'],
+            parameterType = 'Required',
+            direction = 'Input'
+        )
+
+        param4 = arcpy.Parameter(
+            name = 'join_fields',
+            displayName = 'Join Field(s)',
+            datatype = 'Field',
+            parameterType = 'Required',
+            direction = 'Input',
+            multiValue=True
+        )
+        param4.parameterDependencies = [param3.name]
+
+        param5 = arcpy.Parameter(
+            name = 'join_where_clause',
+            displayName = 'Join Features: Where Clause',
+            datatype = 'GPSQLExpression',
+            parameterType = 'Optional',
+            direction = 'Input'
+        )
+        param5.parameterDependencies = [param3.name]
+
+        param6 = arcpy.Parameter(
+            name = 'match_option',
+            displayName = 'Match Option',
+            datatype = 'GPString',
+            parameterType = 'Required',
+            direction = 'Input'
+        )
+        param6.filter.type = 'ValueList' # filter parameter input to given list
+        param6.filter.list = ['INTERSECT', 'INTERSECT_3D', 'WITHIN_A_DISTANCE', 'WITHIN_A_DISTANCE_GEODESIC', 'CONTAINS', 'COMPLETELY_CONTAINS', 'CONTAINS_CLEMENTINI', 'WITHIN', 'COMPLETELY_WITHIN', 'WITHIN_CLEMENTINI', 'ARE_IDENTICAL_TO', 'BOUNDARY_TOUCHES', 'SHARE_A_LINE_SEGMENT_WITH', 'CROSSED_BY_THE_OUTLINE_OF', 'HAVE_THEIR_CENTER_IN', 'CLOSEST', 'CLOSEST_GEODESIC', ]
+        param6.value = 'INTERSECT' # default value
+
+        param7 = arcpy.Parameter(
+            name = 'search_radius',
+            displayName = 'Search Radius',
+            datatype = 'GPLinearUnit',
+            parameterType = 'Optional',
+            direction = 'Input'
+        )
+
+        params = [param0, param1, param2, param3, param4, param5, param6, param7]
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
+        return
+
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal validation for each tool
+        parameter.  This method is called after internal validation."""
+        return
+
+    def execute(self, parameters, messages):
+        """The source code of the tool."""
+        target_features = parameters[0].valueAsText
+        target_fields = parameters[1].valueAsText
+        target_where_clause = parameters[2].valueAsText
+        join_features = parameters[3].valueAsText
+        join_fields = parameters[4].valueAsText
+        join_where_clause = parameters[5].valueAsText
+        match_option = parameters[6].valueAsText
+        search_radius = parameters[7].valueAsText
+
+        # create field mappings object containing a single field map of the join field from the join features
+        fms = arcpy.FieldMappings()
+        join_result_fields_list = []
+        for index, (target_field, join_field) in enumerate(zip(target_fields, join_fields), 1):
+
+            fm = arcpy.FieldMap()
+            fm.addInputField(join_features, join_field)
+            join_result_field = fm.outputField
+            join_result_field_name = 'join_result_field_' + str(index)
+            join_result_fields_list.append(join_result_field_name)
+            join_result_field.name = join_result_field_name
+            fm.outputField = join_result_field
+            fms.addFieldMap(fm)
+
+
+        # make Feature Layer of the Parks Layer with requisite query
+        target_layer = 'target_layer'
+        arcpy.MakeFeatureLayer_management(
+            in_features=target_features,
+            out_layer='target_layer',
+            where_clause=target_where_clause
+        )
+
+        # make Feature Layer of the Parks Layer with requisite query
+        join_layer = 'join_layer'
+        arcpy.MakeFeatureLayer_management(
+            in_features=join_features,
+            out_layer=join_layer,
+            where_clause=join_where_clause
+        )
+        
+        # spatial join the join layer to the target layer
+        arcpy.SpatialJoin_analysis(
+            target_features=target_layer,
+            join_features=join_layer,
+            out_feature_class=r'memory\SpatialJoin',
+            field_mapping=fms,
+            match_option=match_option,
+            search_radius=search_radius
+        )
+
+        # create nested dictionary of OID and join result field key/value pairs from spatial join result
+        search_dict = dict()
+        with arcpy.da.SearchCursor(
+            in_table=r'memory\SpatialJoin',
+            field_names=['TARGET_FID'] + [join_result_fields_list]
+        ) as cursor:
+                    
+            for row in cursor:
+                target_fid = row[0]
+                for index, cell in enumerate(row[1:], 1):
+                    join_result_value = row[index]
+
+                    search_dict[target_fid] = {'join_result_field_' + str(index): join_result_value}
+        
+        # delete the spatial join result from memory
+        arcpy.Delete_management(
+            in_data=r'memory\SpatialJoin'
+        )
+
+        # update the target field of the target features from dictionary
+        with arcpy.da.UpdateCursor(
+            in_table=target_layer,
+            field_names=['@OID'] + [target_fields]
+        ) as cursor:
+            for row in cursor:
+                oid = row[0]
+                for index, cell in enumerate(row[1:], 1):
+                    row[index] = search_dict[oid]['join_result_field_' + str(index)]
                 cursor.updateRow(row)
