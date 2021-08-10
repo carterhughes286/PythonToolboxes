@@ -20,7 +20,7 @@ class OverwriteFeatureClass(object):
         """Define the tool (tool name is the name of the class)."""
         self.label = "Overwrite Feature Class"
         self.description = ""
-        self.canRunInBackground = False
+        self.canRunInBackground = True
 
     def getParameterInfo(self):
         """Define parameter definitions"""
@@ -125,7 +125,7 @@ class SpatialJoinField(object):
         """Define the tool (tool name is the name of the class)."""
         self.label = "Spatial Join Field"
         self.description = ""
-        self.canRunInBackground = False
+        self.canRunInBackground = True
 
     def getParameterInfo(self):
         """Define parameter definitions"""
@@ -154,7 +154,7 @@ class SpatialJoinField(object):
             parameterType = 'Optional',
             direction = 'Input'
         )
-        param2.parameterDependencies = [param2.name]
+        param2.parameterDependencies = [param0.name]
 
         param3 = arcpy.Parameter(
             name = 'join_features',
@@ -200,7 +200,6 @@ class SpatialJoinField(object):
             parameterType = 'Optional',
             direction = 'Input'
         )
-        param7.value = 0 # default value
 
         params = [param0, param1, param2, param3, param4, param5, param6, param7]
         return params
@@ -246,8 +245,7 @@ class SpatialJoinField(object):
         arcpy.MakeFeatureLayer_management(
             in_features=target_features,
             out_layer='target_layer',
-            where_clause=target_where_clause,
-
+            where_clause=target_where_clause
         )
 
         # make Feature Layer of the Parks Layer with requisite query
